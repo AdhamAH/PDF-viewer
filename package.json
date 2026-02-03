@@ -1,0 +1,37 @@
+{
+  "name": "embedpdf-headless-vite",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@embedpdf/core": "^2.3.0",
+    "@embedpdf/engines": "^2.3.0",
+    "@embedpdf/plugin-annotation": "^2.3.0",
+    "@embedpdf/plugin-document-manager": "^2.3.0",
+    "@embedpdf/plugin-fullscreen": "^2.3.0",
+    "@embedpdf/plugin-history": "^2.3.0",
+    "@embedpdf/plugin-interaction-manager": "^2.3.0",
+    "@embedpdf/plugin-pan": "^2.3.0",
+    "@embedpdf/plugin-render": "^2.3.0",
+    "@embedpdf/plugin-scroll": "^2.3.0",
+    "@embedpdf/plugin-search": "^2.3.0",
+    "@embedpdf/plugin-selection": "^2.3.0",
+    "@embedpdf/plugin-viewport": "^2.3.0",
+    "@embedpdf/plugin-zoom": "^2.3.0",
+    "@embedpdf/plugin-export": "^2.3.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.8"
+  }
+}
