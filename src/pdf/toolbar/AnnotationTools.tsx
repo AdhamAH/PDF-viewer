@@ -1,4 +1,5 @@
 import { useAnnotation } from '@embedpdf/plugin-annotation/react';
+import { useEffect, useCallback } from 'react';
 import type { AnnotationCapability, AnnotationState } from '../types';
 
 type AnnotationToolsProps = {
@@ -38,6 +39,9 @@ export default function AnnotationTools({ documentId }: AnnotationToolsProps) {
   // React 19 compiler handles memoization
   const activeTool = getActiveTool(state);
 
+  // Check if any annotations are selected
+  const hasSelection = (state.selectedUids?.length ?? 0) > 0 || state.selectedUid != null;
+
   const setTool = (tool: string | null) => {
     if (provides.setActiveTool) {
       provides.setActiveTool(tool);
@@ -60,6 +64,53 @@ export default function AnnotationTools({ documentId }: AnnotationToolsProps) {
     setTool(null);
   };
 
+  const deleteSelected = useCallback(() => {
+    if (!provides.deleteAnnotation) return;
+
+    // Get selected annotations
+    const selected = provides.getSelectedAnnotations?.() ?? [];
+    if (selected.length === 0 && provides.getSelectedAnnotation) {
+      const single = provides.getSelectedAnnotation();
+      if (single) {
+        selected.push(single);
+      }
+    }
+
+    if (selected.length === 0) return;
+
+    // Delete each selected annotation
+    for (const tracked of selected) {
+      const ann = tracked.object;
+      const pageIndex = ann.pageIndex;
+      const id = ann.id ?? ann.uid;
+      if (pageIndex != null && id != null) {
+        provides.deleteAnnotation(pageIndex as number, id as string);
+      }
+    }
+
+    // Clear selection after deletion
+    provides.deselectAnnotation?.();
+  }, [provides]);
+
+  // Keyboard shortcut: Delete/Backspace to remove selected annotation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        // Don't delete if user is typing in an input
+        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+          return;
+        }
+        if (hasSelection) {
+          e.preventDefault();
+          deleteSelected();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [hasSelection, deleteSelected]);
+
   return (
     <>
       <button
@@ -78,6 +129,14 @@ export default function AnnotationTools({ documentId }: AnnotationToolsProps) {
       </button>
       <button type="button" onClick={clearTool}>
         Cancel
+      </button>
+      <button
+        type="button"
+        onClick={deleteSelected}
+        disabled={!hasSelection}
+        title="Delete selected annotation"
+      >
+        Delete
       </button>
     </>
   );

@@ -19,6 +19,7 @@ import { MarqueeZoom } from '@embedpdf/plugin-zoom/react';
 
 import { createViewerPlugins, DEFAULT_DOCUMENT_URL } from './plugins';
 import Toolbar from './toolbar/Toolbar';
+import ThumbnailSidebar from './ThumbnailSidebar';
 import { useAnnotationPersistence } from './hooks/useAnnotationPersistence';
 import type {
   DocumentManagerCapability,
@@ -56,7 +57,17 @@ function DocumentViewport({
               <PagePointerProvider documentId={documentId} pageIndex={pageIndex}>
                 <RenderLayer documentId={documentId} pageIndex={pageIndex} />
                 <SelectionLayer documentId={documentId} pageIndex={pageIndex} />
-                <AnnotationLayer documentId={documentId} pageIndex={pageIndex} />
+                <AnnotationLayer
+                  documentId={documentId}
+                  pageIndex={pageIndex}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                  }}
+                />
                 <MarqueeZoom documentId={documentId} pageIndex={pageIndex} />
                 <SearchLayer documentId={documentId} pageIndex={pageIndex} />
               </PagePointerProvider>
@@ -124,33 +135,36 @@ function ViewerShell({ activeDocumentId }: { activeDocumentId: string | null }) 
 
       <Toolbar documentId={activeDocumentId} />
 
-      <div className="viewer-container">
-        {activeDocumentId ? (
-          <DocumentContent documentId={activeDocumentId}>
-            {(payload) => {
-              const { isLoaded, isLoading, isError, error, documentState } =
-                payload as DocumentContentPayload;
+      <div className="viewer-wrapper">
+        {activeDocumentId && <ThumbnailSidebar documentId={activeDocumentId} />}
+        <div className="viewer-container">
+          {activeDocumentId ? (
+            <DocumentContent documentId={activeDocumentId}>
+              {(payload) => {
+                const { isLoaded, isLoading, isError, error, documentState } =
+                  payload as DocumentContentPayload;
 
-              if (isLoading) {
-                return <div className="viewer-status">Loading document...</div>;
-              }
-              if (isError || error) {
-                return <div className="viewer-status">Failed to load document.</div>;
-              }
-              if (!isLoaded) {
-                return <div className="viewer-status">Preparing pages...</div>;
-              }
-              return (
-                <DocumentViewport
-                  documentId={activeDocumentId}
-                  documentState={documentState}
-                />
-              );
-            }}
-          </DocumentContent>
-        ) : (
-          <div className="viewer-status">No document open.</div>
-        )}
+                if (isLoading) {
+                  return <div className="viewer-status">Loading document...</div>;
+                }
+                if (isError || error) {
+                  return <div className="viewer-status">Failed to load document.</div>;
+                }
+                if (!isLoaded) {
+                  return <div className="viewer-status">Preparing pages...</div>;
+                }
+                return (
+                  <DocumentViewport
+                    documentId={activeDocumentId}
+                    documentState={documentState}
+                  />
+                );
+              }}
+            </DocumentContent>
+          ) : (
+            <div className="viewer-status">No document open.</div>
+          )}
+        </div>
       </div>
     </div>
   );

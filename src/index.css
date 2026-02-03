@@ -82,11 +82,66 @@ body {
   min-width: 200px;
 }
 
-.viewer-container {
+.viewer-wrapper {
+  display: flex;
   height: 70vh;
   border: 1px solid #dedbd5;
   border-radius: 12px;
   background: #ffffff;
+  overflow: hidden;
+}
+
+.thumbnail-sidebar {
+  width: 150px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #f8f7f5;
+  border-right: 1px solid #dedbd5;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+}
+
+.thumbnail {
+  position: relative;
+  border: 2px solid #dedbd5;
+  border-radius: 4px;
+  padding: 0;
+  background: #fff;
+  cursor: pointer;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.thumbnail:hover {
+  border-color: #a0a0a0;
+}
+
+.thumbnail-active {
+  border-color: #2a2722;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.thumbnail img {
+  display: block;
+}
+
+.thumbnail-label {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.viewer-container {
+  flex: 1;
   overflow: hidden;
 }
 

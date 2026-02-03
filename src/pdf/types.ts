@@ -74,10 +74,17 @@ export interface ZoomCapability {
 // Annotation types
 export type AnyAnnotation = Record<string, unknown>;
 
+export interface TrackedAnnotation {
+  object: AnyAnnotation & { pageIndex?: number };
+  commitState?: string;
+}
+
 export interface AnnotationState {
   activeToolId?: string | { id?: string };
   activeTool?: string | { id?: string };
   activeToolName?: string | { id?: string };
+  selectedUids?: string[];
+  selectedUid?: string | null;
 }
 
 export interface AnnotationProvides {
@@ -87,6 +94,10 @@ export interface AnnotationProvides {
   clearActiveTool?: () => void;
   importAnnotations?: (annotations: AnyAnnotation[]) => void;
   onAnnotationEvent?: (handler: (event: AnnotationEvent) => void) => (() => void) | undefined;
+  getSelectedAnnotations?: () => TrackedAnnotation[];
+  getSelectedAnnotation?: () => TrackedAnnotation | null;
+  deleteAnnotation?: (pageIndex: number, annotationId: string) => void;
+  deselectAnnotation?: () => void;
 }
 
 export interface AnnotationCapability {
