@@ -1,4 +1,5 @@
 import AnnotationTools from './AnnotationTools';
+import CommentTool from './CommentTool';
 import ExportControls from './ExportControls';
 import FullscreenButton from './FullscreenButton';
 import HistoryControls from './HistoryControls';
@@ -28,6 +29,10 @@ export default function Toolbar({ documentId }: ToolbarProps) {
       <div className="toolbar-group">
         <label>Annotations</label>
         <AnnotationTools documentId={documentId} />
+      </div>
+      <div className="toolbar-group">
+        <label>Comments</label>
+        <CommentTool />
       </div>
       <div className="toolbar-group">
         <label>History</label>

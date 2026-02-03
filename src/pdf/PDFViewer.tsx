@@ -20,6 +20,9 @@ import { MarqueeZoom } from '@embedpdf/plugin-zoom/react';
 import { createViewerPlugins, DEFAULT_DOCUMENT_URL } from './plugins';
 import Toolbar from './toolbar/Toolbar';
 import ThumbnailSidebar from './ThumbnailSidebar';
+import CommentsSidebar from './CommentsSidebar';
+import CommentLayer from './CommentLayer';
+import { CommentsProvider } from './CommentsContext';
 import { useAnnotationPersistence } from './hooks/useAnnotationPersistence';
 import type {
   DocumentManagerCapability,
@@ -28,13 +31,17 @@ import type {
 } from './types';
 import { isValidPdfUrl } from './types';
 
-const getStorageKey = (documentState: DocumentState | undefined, documentId: string) => {
+const getStorageKey = (
+  prefix: string,
+  documentState: DocumentState | undefined,
+  documentId: string
+) => {
   const url = documentState?.source?.url ?? documentState?.url;
   if (url) {
-    return `embedpdf:annotations:${url}`;
+    return `embedpdf:${prefix}:${url}`;
   }
   const name = documentState?.name;
-  return `embedpdf:annotations:${name ?? documentId}`;
+  return `embedpdf:${prefix}:${name ?? documentId}`;
 };
 
 function DocumentViewport({
@@ -44,8 +51,8 @@ function DocumentViewport({
   documentId: string;
   documentState?: DocumentState;
 }) {
-  const storageKey = getStorageKey(documentState, documentId);
-  useAnnotationPersistence(documentId, storageKey);
+  const annotationStorageKey = getStorageKey('annotations', documentState, documentId);
+  useAnnotationPersistence(documentId, annotationStorageKey);
 
   return (
     <GlobalPointerProvider documentId={documentId}>
@@ -68,6 +75,12 @@ function DocumentViewport({
                     height: '100%',
                   }}
                 />
+                <CommentLayer
+                  documentId={documentId}
+                  pageIndex={pageIndex}
+                  pageWidth={width}
+                  pageHeight={height}
+                />
                 <MarqueeZoom documentId={documentId} pageIndex={pageIndex} />
                 <SearchLayer documentId={documentId} pageIndex={pageIndex} />
               </PagePointerProvider>
@@ -79,7 +92,25 @@ function DocumentViewport({
   );
 }
 
-function ViewerShell({ activeDocumentId }: { activeDocumentId: string | null }) {
+function ViewerContent({
+  documentId,
+  documentState,
+}: {
+  documentId: string;
+  documentState?: DocumentState;
+}) {
+  return (
+    <div className="viewer-wrapper">
+      <ThumbnailSidebar documentId={documentId} />
+      <div className="viewer-container">
+        <DocumentViewport documentId={documentId} documentState={documentState} />
+      </div>
+      <CommentsSidebar documentId={documentId} />
+    </div>
+  );
+}
+
+function ViewerShellInner({ activeDocumentId }: { activeDocumentId: string | null }) {
   const [urlInput, setUrlInput] = useState(DEFAULT_DOCUMENT_URL);
   const [urlError, setUrlError] = useState<string | null>(null);
   const docManager = useDocumentManagerCapability() as DocumentManagerCapability | undefined;
@@ -135,38 +166,65 @@ function ViewerShell({ activeDocumentId }: { activeDocumentId: string | null }) 
 
       <Toolbar documentId={activeDocumentId} />
 
-      <div className="viewer-wrapper">
-        {activeDocumentId && <ThumbnailSidebar documentId={activeDocumentId} />}
-        <div className="viewer-container">
-          {activeDocumentId ? (
-            <DocumentContent documentId={activeDocumentId}>
-              {(payload) => {
-                const { isLoaded, isLoading, isError, error, documentState } =
-                  payload as DocumentContentPayload;
+      {activeDocumentId ? (
+        <DocumentContent documentId={activeDocumentId}>
+          {(payload) => {
+            const { isLoaded, isLoading, isError, error, documentState } =
+              payload as DocumentContentPayload;
 
-                if (isLoading) {
-                  return <div className="viewer-status">Loading document...</div>;
-                }
-                if (isError || error) {
-                  return <div className="viewer-status">Failed to load document.</div>;
-                }
-                if (!isLoaded) {
-                  return <div className="viewer-status">Preparing pages...</div>;
-                }
-                return (
-                  <DocumentViewport
-                    documentId={activeDocumentId}
-                    documentState={documentState}
-                  />
-                );
-              }}
-            </DocumentContent>
-          ) : (
+            if (isLoading) {
+              return (
+                <div className="viewer-wrapper">
+                  <div className="viewer-container">
+                    <div className="viewer-status">Loading document...</div>
+                  </div>
+                </div>
+              );
+            }
+            if (isError || error) {
+              return (
+                <div className="viewer-wrapper">
+                  <div className="viewer-container">
+                    <div className="viewer-status">Failed to load document.</div>
+                  </div>
+                </div>
+              );
+            }
+            if (!isLoaded) {
+              return (
+                <div className="viewer-wrapper">
+                  <div className="viewer-container">
+                    <div className="viewer-status">Preparing pages...</div>
+                  </div>
+                </div>
+              );
+            }
+            return (
+              <ViewerContent documentId={activeDocumentId} documentState={documentState} />
+            );
+          }}
+        </DocumentContent>
+      ) : (
+        <div className="viewer-wrapper">
+          <div className="viewer-container">
             <div className="viewer-status">No document open.</div>
-          )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
+  );
+}
+
+function ViewerShell({ activeDocumentId }: { activeDocumentId: string | null }) {
+  // Comments storage key based on document - using a stable key when no document is loaded
+  const commentsStorageKey = activeDocumentId
+    ? `embedpdf:comments:${activeDocumentId}`
+    : 'embedpdf:comments:default';
+
+  return (
+    <CommentsProvider storageKey={commentsStorageKey}>
+      <ViewerShellInner activeDocumentId={activeDocumentId} />
+    </CommentsProvider>
   );
 }
 

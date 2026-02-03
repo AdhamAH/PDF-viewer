@@ -188,6 +188,24 @@ export interface ExportCapability {
   provides?: ExportProvides;
 }
 
+// Comment types
+export interface CommentData {
+  id: string;
+  pageIndex: number;
+  position: { x: number; y: number }; // PDF coordinates
+  content: string;
+  author?: string;
+  created: number;
+  updated?: number;
+  parentAnnotationId?: string; // If attached to highlight/underline
+  parentCommentId?: string; // If this is a reply
+}
+
+export interface CommentStorage {
+  load(documentKey: string): Promise<CommentData[]>;
+  save(documentKey: string, comments: CommentData[]): Promise<void>;
+}
+
 // URL validation helper
 export function isValidPdfUrl(url: string): boolean {
   try {
