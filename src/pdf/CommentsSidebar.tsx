@@ -222,8 +222,14 @@ export default function CommentsSidebar({ documentId }: CommentsSidebarProps) {
   };
 
   const handleNewComment = (content: string, author: string) => {
-    // Default position for sidebar-added comments (top-left of page)
-    addComment(newCommentPageIndex, { x: 20, y: 20 }, content, author || undefined);
+    // Calculate offset position so sidebar-added comments don't overlap
+    // Count existing comments on this page to offset the new one
+    const existingOnPage = getCommentsForPage(newCommentPageIndex);
+    const offset = existingOnPage.length * 30; // 30px offset per existing comment
+    const x = 20 + offset;
+    const y = 20 + offset;
+
+    addComment(newCommentPageIndex, { x, y }, content, author || undefined);
     setShowNewCommentForm(false);
     setPendingAnnotationId(null);
   };

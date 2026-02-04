@@ -266,10 +266,33 @@ export function textAnnotationToCommentData(
 }
 
 /**
- * Generate a unique ID for new annotations
+ * Generate a unique UUIDv4 ID for new annotations.
+ * Must be UUIDv4 format because the PDFium engine validates/replaces non-UUIDv4 IDs,
+ * which causes a state UID mismatch when trying to update annotations.
  */
 export function generateAnnotationId(): string {
-  return `comment-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+  // Use native crypto.randomUUID if available (modern browsers, Node 19+)
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  // Fallback: Generate a proper UUIDv4 manually
+  // Format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+  // where x is any hex digit and y is one of 8, 9, a, or b
+  const hex = '0123456789abcdef';
+  let uuid = '';
+  for (let i = 0; i < 36; i++) {
+    if (i === 8 || i === 13 || i === 18 || i === 23) {
+      uuid += '-';
+    } else if (i === 14) {
+      uuid += '4'; // Version 4
+    } else if (i === 19) {
+      uuid += hex[(Math.random() * 4) | 8]; // Variant bits: 8, 9, a, or b
+    } else {
+      uuid += hex[(Math.random() * 16) | 0];
+    }
+  }
+  return uuid;
 }
 
 // URL validation helper

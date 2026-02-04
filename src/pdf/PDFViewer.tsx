@@ -23,36 +23,20 @@ import ThumbnailSidebar from './ThumbnailSidebar';
 import CommentsSidebar from './CommentsSidebar';
 import CommentLayer from './CommentLayer';
 import { CommentsProvider } from './CommentsContext';
-import { useAnnotationPersistence } from './hooks/useAnnotationPersistence';
 import type {
   DocumentManagerCapability,
   DocumentContentPayload,
-  DocumentState,
 } from './types';
 import { isValidPdfUrl } from './types';
 
-const getStorageKey = (
-  prefix: string,
-  documentState: DocumentState | undefined,
-  documentId: string
-) => {
-  const url = documentState?.source?.url ?? documentState?.url;
-  if (url) {
-    return `embedpdf:${prefix}:${url}`;
-  }
-  const name = documentState?.name;
-  return `embedpdf:${prefix}:${name ?? documentId}`;
-};
-
 function DocumentViewport({
   documentId,
-  documentState,
 }: {
   documentId: string;
-  documentState?: DocumentState;
 }) {
-  const annotationStorageKey = getStorageKey('annotations', documentState, documentId);
-  useAnnotationPersistence(documentId, annotationStorageKey);
+  // Annotations are persisted via autoCommit (default: true) in the annotation plugin.
+  // When user clicks "Save", ExportControls.saveAsCopy() exports PDF with annotations.
+  // No localStorage needed - annotations live in the PDF engine state during session.
 
   return (
     <GlobalPointerProvider documentId={documentId}>
@@ -92,18 +76,12 @@ function DocumentViewport({
   );
 }
 
-function ViewerContent({
-  documentId,
-  documentState,
-}: {
-  documentId: string;
-  documentState?: DocumentState;
-}) {
+function ViewerContent({ documentId }: { documentId: string }) {
   return (
     <div className="viewer-wrapper">
       <ThumbnailSidebar documentId={documentId} />
       <div className="viewer-container">
-        <DocumentViewport documentId={documentId} documentState={documentState} />
+        <DocumentViewport documentId={documentId} />
       </div>
       <CommentsSidebar documentId={documentId} />
     </div>
@@ -169,7 +147,7 @@ function ViewerShellInner({ activeDocumentId }: { activeDocumentId: string | nul
       {activeDocumentId ? (
         <DocumentContent documentId={activeDocumentId}>
           {(payload) => {
-            const { isLoaded, isLoading, isError, error, documentState } =
+            const { isLoaded, isLoading, isError, error } =
               payload as DocumentContentPayload;
 
             if (isLoading) {
@@ -199,9 +177,7 @@ function ViewerShellInner({ activeDocumentId }: { activeDocumentId: string | nul
                 </div>
               );
             }
-            return (
-              <ViewerContent documentId={activeDocumentId} documentState={documentState} />
-            );
+            return <ViewerContent documentId={activeDocumentId} />;
           }}
         </DocumentContent>
       ) : (
@@ -216,8 +192,8 @@ function ViewerShellInner({ activeDocumentId }: { activeDocumentId: string | nul
 }
 
 function ViewerShell({ activeDocumentId }: { activeDocumentId: string | null }) {
-  // CommentsProvider now uses the annotation plugin directly via documentId
-  // Comments are persisted as TEXT annotations via useAnnotationPersistence
+  // Comments are TEXT annotations managed by the annotation plugin.
+  // Persistence: autoCommit saves to engine state; saveAsCopy() exports PDF with annotations.
   return (
     <CommentsProvider documentId={activeDocumentId}>
       <ViewerShellInner activeDocumentId={activeDocumentId} />

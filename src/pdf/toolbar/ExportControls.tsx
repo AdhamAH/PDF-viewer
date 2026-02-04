@@ -2,7 +2,7 @@ import { useExport } from '@embedpdf/plugin-export/react';
 import { useAnnotation } from '@embedpdf/plugin-annotation/react';
 import { useState } from 'react';
 import type { ExportCapability } from '../types';
-import type { AnnotationCapability } from '@embedpdf/plugin-annotation';
+import type { AnnotationScope, AnnotationDocumentState } from '@embedpdf/plugin-annotation';
 
 type ExportControlsProps = {
   documentId: string;
@@ -17,19 +17,36 @@ export default function ExportControls({ documentId }: ExportControlsProps) {
 
   // Get annotation plugin to commit pending changes before export
   const annotation = useAnnotation(documentId) as
-    | { provides: AnnotationCapability | null }
+    | { provides: AnnotationScope | null; state: AnnotationDocumentState | null }
     | undefined;
   const annotationProvides = annotation?.provides ?? null;
+  const annotationState = annotation?.state ?? null;
 
   // Helper to commit any pending annotations before saving
   const commitPendingAnnotations = async () => {
+    // Log current state before commit
+    console.log('[Export] Before commit - annotation state:', {
+      hasPendingChanges: annotationState?.hasPendingChanges,
+      totalAnnotations: annotationState ? Object.keys(annotationState.byUid).length : 0,
+      annotations: annotationState
+        ? Object.values(annotationState.byUid).map((t) => ({
+            id: t.object.id,
+            type: t.object.type,
+            commitState: t.commitState,
+          }))
+        : [],
+    });
+
     if (annotationProvides?.commit) {
       try {
-        await annotationProvides.commit().toPromise();
+        console.log('[Export] Calling commit()...');
+        const result = await annotationProvides.commit().toPromise();
+        console.log('[Export] Commit result:', result);
       } catch (error) {
-        console.warn('Failed to commit annotations before save:', error);
-        // Continue with save even if commit fails
+        console.error('[Export] Failed to commit annotations:', error);
       }
+    } else {
+      console.warn('[Export] No commit method available on annotationProvides');
     }
   };
 
@@ -41,8 +58,10 @@ export default function ExportControls({ documentId }: ExportControlsProps) {
       // Commit any pending annotations first
       await commitPendingAnnotations();
 
+      console.log('[Export] Calling saveAsCopy()...');
       const result = provides.saveAsCopy();
       const arrayBuffer = await result.toPromise();
+      console.log('[Export] saveAsCopy() completed, PDF size:', arrayBuffer.byteLength);
 
       // Create a blob with correct MIME type - the library's download() doesn't set this
       const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
@@ -69,8 +88,10 @@ export default function ExportControls({ documentId }: ExportControlsProps) {
       // Commit any pending annotations first
       await commitPendingAnnotations();
 
+      console.log('[Export] Calling saveAsCopy() for Save Copy...');
       const result = provides.saveAsCopy();
       const arrayBuffer = await result.toPromise();
+      console.log('[Export] saveAsCopy() completed, PDF size:', arrayBuffer.byteLength);
 
       // Create a blob and trigger browser download
       const blob = new Blob([arrayBuffer], { type: 'application/pdf' });

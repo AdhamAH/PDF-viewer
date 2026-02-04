@@ -16,7 +16,7 @@ import {
 } from '@embedpdf/models';
 import type { PdfTextAnnoObject } from '@embedpdf/models';
 import type {
-  AnnotationCapability,
+  AnnotationScope,
   AnnotationDocumentState,
 } from '@embedpdf/plugin-annotation';
 import {
@@ -68,13 +68,28 @@ export function CommentsProvider({ children, documentId }: CommentsProviderProps
     null
   );
 
-  // Get annotation capability from the annotation plugin
+  // Get annotation scope from the annotation plugin (document-scoped API)
   const annotation = useAnnotation(documentId ?? '') as
-    | { provides: AnnotationCapability | null; state: AnnotationDocumentState | null }
+    | { provides: AnnotationScope | null; state: AnnotationDocumentState | null }
     | undefined;
 
   const annotationProvides = annotation?.provides ?? null;
   const annotationState = annotation?.state ?? null;
+
+  // Debug: log annotation state changes
+  useEffect(() => {
+    if (annotationState) {
+      console.log('[Comments] Annotation state updated:', {
+        pages: Object.keys(annotationState.pages),
+        totalAnnotations: Object.keys(annotationState.byUid).length,
+        annotations: Object.values(annotationState.byUid).map((t) => ({
+          id: t.object.id,
+          type: t.object.type,
+          commitState: t.commitState,
+        })),
+      });
+    }
+  }, [annotationState]);
 
   // Use a ref to track comments for callbacks to avoid stale closure issues
   const commentsRef = useRef<CommentData[]>([]);
@@ -83,6 +98,7 @@ export function CommentsProvider({ children, documentId }: CommentsProviderProps
   // We removed the separate event subscription to avoid dual-sync race conditions
   useEffect(() => {
     if (!annotationState || !documentId) {
+      console.log('[Comments] No annotation state or documentId, clearing comments');
       setComments([]);
       commentsRef.current = [];
       return;
@@ -100,9 +116,28 @@ export function CommentsProvider({ children, documentId }: CommentsProviderProps
       }
     }
 
+    console.log('[Comments] Synced TEXT annotations:', textAnnotations.length, textAnnotations);
     setComments(textAnnotations);
     commentsRef.current = textAnnotations;
   }, [annotationState, documentId]);
+
+  // Clear any old localStorage data on mount (cleanup from previous buggy implementation)
+  useEffect(() => {
+    if (documentId) {
+      // Clean up old localStorage entries that might be causing issues
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key?.startsWith('embedpdf:annotations:') || key?.startsWith('embedpdf:comments:')) {
+          keysToRemove.push(key);
+        }
+      }
+      if (keysToRemove.length > 0) {
+        console.log('[Comments] Cleaning up old localStorage entries:', keysToRemove);
+        keysToRemove.forEach((key) => localStorage.removeItem(key));
+      }
+    }
+  }, [documentId]);
 
   const addComment = useCallback(
     (
@@ -213,6 +248,14 @@ export function CommentsProvider({ children, documentId }: CommentsProviderProps
       if (updates.author !== undefined) {
         patch.author = updates.author || undefined;
       }
+
+      console.log('[Comments] Updating annotation:', {
+        id,
+        pageIndex: comment.pageIndex,
+        patch,
+        currentContent: comment.content,
+        newContent: updates.content,
+      });
 
       annotationProvides.updateAnnotation(comment.pageIndex, id, patch);
     },
