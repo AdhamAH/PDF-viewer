@@ -27,16 +27,12 @@ export default function CommentLayer({
     if (!commentModeActive) return;
 
     const rect = e.currentTarget.getBoundingClientRect();
-    const x = ((e.clientX - rect.left) / rect.width) * 100;
-    const y = ((e.clientY - rect.top) / rect.height) * 100;
+    // Convert click position to PDF coordinates (points)
+    const x = ((e.clientX - rect.left) / rect.width) * pageWidth;
+    const y = ((e.clientY - rect.top) / rect.height) * pageHeight;
 
-    addComment({
-      pageIndex,
-      position: { x, y },
-      content: 'New comment',
-    });
-
-    setCommentModeActive(false);
+    // Create a new comment at the clicked position
+    addComment(pageIndex, { x, y }, 'New comment');
   };
 
   const handlePinClick = (e: React.MouseEvent, commentId: string) => {
@@ -58,8 +54,9 @@ export default function CommentLayer({
       onClick={handleLayerClick}
     >
       {pageComments.map((comment) => {
-        const left = (comment.position.x / 100) * pageWidth;
-        const top = (comment.position.y / 100) * pageHeight;
+        // Position is in PDF coordinates (points), which matches the page dimensions
+        const left = comment.position.x;
+        const top = comment.position.y;
 
         return (
           <div

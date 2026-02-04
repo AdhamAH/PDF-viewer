@@ -3,22 +3,39 @@ import { useAnnotation } from '@embedpdf/plugin-annotation/react';
 import type { AnyAnnotation, AnnotationCapability, AnnotationEvent } from '../types';
 
 function getAnnotationId(annotation: AnyAnnotation | undefined): string | undefined {
-  const directId = annotation?.id as string | undefined;
-  const objectId = (annotation?.object as { id?: string } | undefined)?.id;
-  return directId ?? objectId;
+  if (!annotation) return undefined;
+
+  // Try direct id property first
+  if (typeof annotation.id === 'string') {
+    return annotation.id;
+  }
+
+  // Try nested object.id (for TrackedAnnotation structure)
+  const obj = annotation.object as { id?: string } | undefined;
+  if (obj && typeof obj.id === 'string') {
+    return obj.id;
+  }
+
+  return undefined;
 }
 
 function upsertAnnotation(list: AnyAnnotation[], next: AnyAnnotation): AnyAnnotation[] {
   const id = getAnnotationId(next);
   if (!id) {
-    return [...list, next];
+    // No ID - can't track this annotation, skip it
+    console.warn('Annotation without ID, skipping persistence:', next);
+    return list;
   }
+
   const index = list.findIndex((item) => getAnnotationId(item) === id);
   if (index === -1) {
+    // New annotation - add to list
     return [...list, next];
   }
+
+  // Existing annotation - REPLACE entirely (don't merge to avoid stale data)
   const updated = [...list];
-  updated[index] = { ...list[index], ...next };
+  updated[index] = next;
   return updated;
 }
 
@@ -108,11 +125,18 @@ export function useAnnotationPersistence(
         const id = getAnnotationId(event.annotation);
         if (id) {
           list = list.filter((item) => getAnnotationId(item) !== id);
+        } else {
+          console.warn('Delete event without valid annotation ID:', event);
         }
-      } else if (event.annotation) {
-        list = upsertAnnotation(list, event.annotation);
-      } else if (event.patch) {
-        list = upsertAnnotation(list, event.patch as AnyAnnotation);
+      } else if (event.type === 'create' || event.type === 'update') {
+        // Only persist if we have the full annotation with an ID
+        if (event.annotation && getAnnotationId(event.annotation)) {
+          list = upsertAnnotation(list, event.annotation);
+        } else {
+          // Skip patches without full annotation - they would create incomplete entries
+          console.warn('Skipping event without full annotation:', event.type);
+          return;
+        }
       }
 
       annotationsRef.current = list;
@@ -120,8 +144,6 @@ export function useAnnotationPersistence(
       try {
         localStorage.setItem(storageKey, JSON.stringify(list));
       } catch (error) {
-        // Log storage failures - this helps users know their annotations aren't being saved
-        // Common causes: localStorage full (5-10MB limit) or private browsing mode
         console.error('Failed to save annotations to localStorage:', error);
       }
     };

@@ -3,6 +3,17 @@
  * These provide type safety for the plugin APIs which have varying method names across versions.
  */
 
+import {
+  PdfAnnotationSubtype,
+  PdfAnnotationIcon,
+  PdfAnnotationReplyType,
+  PdfTextAnnoObject,
+} from '@embedpdf/models';
+
+// Re-export annotation types for convenience
+export { PdfAnnotationSubtype, PdfAnnotationIcon, PdfAnnotationReplyType };
+export type { PdfTextAnnoObject };
+
 // Document Manager types
 export interface DocumentManagerProvides {
   openDocumentUrl?: (params: { url: string }) => void;
@@ -188,22 +199,77 @@ export interface ExportCapability {
   provides?: ExportProvides;
 }
 
-// Comment types
+// Comment types - now based on TEXT annotations
 export interface CommentData {
   id: string;
   pageIndex: number;
-  position: { x: number; y: number }; // PDF coordinates
+  position: { x: number; y: number }; // PDF coordinates (points)
   content: string;
   author?: string;
   created: number;
   updated?: number;
-  parentAnnotationId?: string; // If attached to highlight/underline
-  parentCommentId?: string; // If this is a reply
+  parentAnnotationId?: string; // If attached to highlight/underline (IRT)
+  parentCommentId?: string; // If this is a reply to another comment (IRT)
 }
 
 export interface CommentStorage {
   load(documentKey: string): Promise<CommentData[]>;
   save(documentKey: string, comments: CommentData[]): Promise<void>;
+}
+
+// TEXT annotation helpers
+
+/**
+ * Check if an annotation is a TEXT (sticky note) annotation
+ */
+export function isTextAnnotation(annotation: unknown): annotation is PdfTextAnnoObject {
+  if (!annotation || typeof annotation !== 'object') return false;
+  return (annotation as { type?: unknown }).type === PdfAnnotationSubtype.TEXT;
+}
+
+/**
+ * Get all replies to a given annotation (via inReplyToId / IRT)
+ */
+export function getAnnotationReplies(
+  annotations: AnyAnnotation[],
+  parentId: string
+): AnyAnnotation[] {
+  return annotations.filter(
+    (a) =>
+      a.inReplyToId === parentId &&
+      a.replyType === PdfAnnotationReplyType.Reply
+  );
+}
+
+/**
+ * Convert a TEXT annotation to CommentData format
+ */
+export function textAnnotationToCommentData(
+  annotation: PdfTextAnnoObject
+): CommentData {
+  // The rect is in PDF coordinates [x1, y1, x2, y2]
+  // We store position as the top-left of the annotation rect
+  const rect = annotation.rect;
+  return {
+    id: annotation.id,
+    pageIndex: annotation.pageIndex,
+    position: {
+      x: rect.origin.x,
+      y: rect.origin.y,
+    },
+    content: annotation.contents || '',
+    author: annotation.author,
+    created: annotation.created?.getTime() ?? Date.now(),
+    updated: annotation.modified?.getTime(),
+    parentCommentId: annotation.inReplyToId,
+  };
+}
+
+/**
+ * Generate a unique ID for new annotations
+ */
+export function generateAnnotationId(): string {
+  return `comment-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
 // URL validation helper

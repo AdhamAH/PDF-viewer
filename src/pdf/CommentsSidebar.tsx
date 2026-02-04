@@ -154,6 +154,7 @@ export default function CommentsSidebar({ documentId }: CommentsSidebarProps) {
     activeCommentId,
     pendingAnnotationId,
     addComment,
+    addReply,
     updateComment,
     deleteComment,
     setActiveComment,
@@ -210,16 +211,7 @@ export default function CommentsSidebar({ documentId }: CommentsSidebarProps) {
   const handleAddReply = (content: string, author: string) => {
     if (!replyToCommentId) return;
 
-    const parentComment = comments.find((c) => c.id === replyToCommentId);
-    if (!parentComment) return;
-
-    addComment({
-      pageIndex: parentComment.pageIndex,
-      position: parentComment.position,
-      content,
-      author: author || undefined,
-      parentCommentId: replyToCommentId,
-    });
+    addReply(replyToCommentId, content, author || undefined);
     setReplyToCommentId(null);
   };
 
@@ -230,13 +222,8 @@ export default function CommentsSidebar({ documentId }: CommentsSidebarProps) {
   };
 
   const handleNewComment = (content: string, author: string) => {
-    addComment({
-      pageIndex: newCommentPageIndex,
-      position: { x: 0, y: 0 }, // Default position for sidebar-added comments
-      content,
-      author: author || undefined,
-      parentAnnotationId: pendingAnnotationId || undefined,
-    });
+    // Default position for sidebar-added comments (top-left of page)
+    addComment(newCommentPageIndex, { x: 20, y: 20 }, content, author || undefined);
     setShowNewCommentForm(false);
     setPendingAnnotationId(null);
   };

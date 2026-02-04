@@ -216,13 +216,10 @@ function ViewerShellInner({ activeDocumentId }: { activeDocumentId: string | nul
 }
 
 function ViewerShell({ activeDocumentId }: { activeDocumentId: string | null }) {
-  // Comments storage key based on document - using a stable key when no document is loaded
-  const commentsStorageKey = activeDocumentId
-    ? `embedpdf:comments:${activeDocumentId}`
-    : 'embedpdf:comments:default';
-
+  // CommentsProvider now uses the annotation plugin directly via documentId
+  // Comments are persisted as TEXT annotations via useAnnotationPersistence
   return (
-    <CommentsProvider storageKey={commentsStorageKey}>
+    <CommentsProvider documentId={activeDocumentId}>
       <ViewerShellInner activeDocumentId={activeDocumentId} />
     </CommentsProvider>
   );

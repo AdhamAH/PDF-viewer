@@ -1,6 +1,8 @@
 import { useExport } from '@embedpdf/plugin-export/react';
+import { useAnnotation } from '@embedpdf/plugin-annotation/react';
 import { useState } from 'react';
 import type { ExportCapability } from '../types';
+import type { AnnotationCapability } from '@embedpdf/plugin-annotation';
 
 type ExportControlsProps = {
   documentId: string;
@@ -13,11 +15,32 @@ export default function ExportControls({ documentId }: ExportControlsProps) {
   const exportPlugin = useExport(documentId) as unknown as ExportCapability | undefined;
   const provides = exportPlugin?.provides ?? {};
 
+  // Get annotation plugin to commit pending changes before export
+  const annotation = useAnnotation(documentId) as
+    | { provides: AnnotationCapability | null }
+    | undefined;
+  const annotationProvides = annotation?.provides ?? null;
+
+  // Helper to commit any pending annotations before saving
+  const commitPendingAnnotations = async () => {
+    if (annotationProvides?.commit) {
+      try {
+        await annotationProvides.commit().toPromise();
+      } catch (error) {
+        console.warn('Failed to commit annotations before save:', error);
+        // Continue with save even if commit fails
+      }
+    }
+  };
+
   const handleDownload = async () => {
     if (!provides.saveAsCopy) return;
 
     setIsSaving(true);
     try {
+      // Commit any pending annotations first
+      await commitPendingAnnotations();
+
       const result = provides.saveAsCopy();
       const arrayBuffer = await result.toPromise();
 
@@ -43,6 +66,9 @@ export default function ExportControls({ documentId }: ExportControlsProps) {
 
     setIsSaving(true);
     try {
+      // Commit any pending annotations first
+      await commitPendingAnnotations();
+
       const result = provides.saveAsCopy();
       const arrayBuffer = await result.toPromise();
 
