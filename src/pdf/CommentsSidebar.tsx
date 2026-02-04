@@ -1,85 +1,134 @@
 import { useState, useRef, useEffect } from 'react';
-import { useDocumentState } from '@embedpdf/core/react';
 import { useScroll } from '@embedpdf/plugin-scroll/react';
-import { useComments } from './CommentsContext';
-import type { CommentData } from './types';
+import { PdfAnnotationSubtype } from '@embedpdf/models';
+import type { PdfAnnotationObject, PdfTextAnnoObject } from '@embedpdf/models';
+import { useComments, type SidebarAnnotationEntry } from './CommentsContext';
 
 interface CommentsSidebarProps {
   documentId: string;
 }
 
-interface CommentCardProps {
-  comment: CommentData;
-  onReply: (commentId: string) => void;
-  onEdit: (commentId: string) => void;
-  onDelete: (commentId: string) => void;
-  onClick: () => void;
-  isActive: boolean;
-  depth?: number;
+// Get a display label for an annotation type
+function getAnnotationTypeLabel(type: PdfAnnotationSubtype): string {
+  switch (type) {
+    case PdfAnnotationSubtype.TEXT:
+      return 'Note';
+    case PdfAnnotationSubtype.HIGHLIGHT:
+      return 'Highlight';
+    case PdfAnnotationSubtype.UNDERLINE:
+      return 'Underline';
+    case PdfAnnotationSubtype.STRIKEOUT:
+      return 'Strikeout';
+    case PdfAnnotationSubtype.SQUIGGLY:
+      return 'Squiggly';
+    case PdfAnnotationSubtype.INK:
+      return 'Drawing';
+    case PdfAnnotationSubtype.FREETEXT:
+      return 'Text Box';
+    case PdfAnnotationSubtype.SQUARE:
+      return 'Rectangle';
+    case PdfAnnotationSubtype.CIRCLE:
+      return 'Ellipse';
+    case PdfAnnotationSubtype.LINE:
+      return 'Line';
+    case PdfAnnotationSubtype.POLYGON:
+      return 'Polygon';
+    case PdfAnnotationSubtype.POLYLINE:
+      return 'Polyline';
+    case PdfAnnotationSubtype.STAMP:
+      return 'Stamp';
+    default:
+      return 'Annotation';
+  }
 }
 
-function CommentCard({
-  comment,
+interface AnnotationCardProps {
+  entry: SidebarAnnotationEntry;
+  isSelected: boolean;
+  onSelect: () => void;
+  onReply: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}
+
+function AnnotationCard({
+  entry,
+  isSelected,
+  onSelect,
   onReply,
   onEdit,
   onDelete,
-  onClick,
-  isActive,
-  depth = 0,
-}: CommentCardProps) {
-  const { getReplies } = useComments();
-  const replies = getReplies(comment.id);
-  const date = new Date(comment.created);
-  const formattedDate = date.toLocaleDateString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+}: AnnotationCardProps) {
+  const annotation = entry.annotation.object as PdfAnnotationObject;
+  const typeLabel = getAnnotationTypeLabel(annotation.type);
+  const contents = annotation.contents || '';
+  const author = annotation.author || 'Anonymous';
+  const created = annotation.created;
+  const formattedDate = created
+    ? new Date(created).toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : '';
 
   return (
-    <div className="comment-thread" style={{ marginLeft: depth > 0 ? 16 : 0 }}>
+    <div className="comment-thread">
       <div
-        className={`comment-card ${isActive ? 'comment-card-active' : ''}`}
-        onClick={onClick}
+        className={`comment-card ${isSelected ? 'comment-card-active' : ''}`}
+        onClick={onSelect}
         role="button"
         tabIndex={0}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
-            onClick();
+            onSelect();
           }
         }}
       >
         <div className="comment-header">
-          <span className="comment-author">{comment.author || 'Anonymous'}</span>
+          <span className="comment-type">{typeLabel}</span>
+          <span className="comment-author">{author}</span>
           <span className="comment-date">{formattedDate}</span>
         </div>
-        <div className="comment-content">{comment.content}</div>
+        {contents && <div className="comment-content">{contents}</div>}
         <div className="comment-actions">
-          <button type="button" onClick={(e) => { e.stopPropagation(); onReply(comment.id); }}>
+          <button type="button" onClick={(e) => { e.stopPropagation(); onReply(); }}>
             Reply
           </button>
-          <button type="button" onClick={(e) => { e.stopPropagation(); onEdit(comment.id); }}>
+          <button type="button" onClick={(e) => { e.stopPropagation(); onEdit(); }}>
             Edit
           </button>
-          <button type="button" onClick={(e) => { e.stopPropagation(); onDelete(comment.id); }}>
+          <button type="button" onClick={(e) => { e.stopPropagation(); onDelete(); }}>
             Delete
           </button>
         </div>
       </div>
-      {replies.map((reply) => (
-        <CommentCard
-          key={reply.id}
-          comment={reply}
-          onReply={onReply}
-          onEdit={onEdit}
-          onDelete={onDelete}
-          onClick={onClick}
-          isActive={false}
-          depth={depth + 1}
-        />
-      ))}
+
+      {/* Render replies */}
+      {entry.replies.map((reply) => {
+        const replyObj = reply.object as PdfTextAnnoObject;
+        const replyAuthor = replyObj.author || 'Anonymous';
+        const replyDate = replyObj.created
+          ? new Date(replyObj.created).toLocaleDateString(undefined, {
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            })
+          : '';
+
+        return (
+          <div key={replyObj.id} className="comment-card reply" style={{ marginLeft: 16 }}>
+            <div className="comment-header">
+              <span className="comment-author">{replyAuthor}</span>
+              <span className="comment-date">{replyDate}</span>
+            </div>
+            <div className="comment-content">{replyObj.contents || ''}</div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -99,7 +148,7 @@ function CommentForm({
   initialContent = '',
   initialAuthor = '',
   placeholder = 'Write a comment...',
-  submitLabel = 'Add Comment',
+  submitLabel = 'Add',
 }: CommentFormProps) {
   const [content, setContent] = useState(initialContent);
   const [author, setAuthor] = useState(initialAuthor);
@@ -147,96 +196,81 @@ function CommentForm({
 }
 
 export default function CommentsSidebar({ documentId }: CommentsSidebarProps) {
-  const documentState = useDocumentState(documentId);
   const scroll = useScroll(documentId);
   const {
-    comments,
-    activeCommentId,
-    pendingAnnotationId,
+    annotationsByPage,
+    selectedAnnotationId,
     addComment,
     addReply,
-    updateComment,
-    deleteComment,
-    setActiveComment,
-    getCommentsForPage,
-    setPendingAnnotationId,
+    updateAnnotationContents,
+    deleteAnnotation,
+    selectAnnotation,
   } = useComments();
 
-  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
-  const [replyToCommentId, setReplyToCommentId] = useState<string | null>(null);
+  const [replyToEntry, setReplyToEntry] = useState<SidebarAnnotationEntry | null>(null);
+  const [editingEntry, setEditingEntry] = useState<SidebarAnnotationEntry | null>(null);
   const [showNewCommentForm, setShowNewCommentForm] = useState(false);
   const [newCommentPageIndex, setNewCommentPageIndex] = useState<number>(0);
 
-  const pages = documentState?.document?.pages ?? [];
-  const totalPages = pages.length;
+  // Get sorted page indices
+  const pageIndices = Object.keys(annotationsByPage)
+    .map(Number)
+    .sort((a, b) => a - b);
 
-  // Show form when there's a pending annotation
-  useEffect(() => {
-    if (pendingAnnotationId) {
-      setShowNewCommentForm(true);
-    }
-  }, [pendingAnnotationId]);
+  const totalPages = Math.max(...pageIndices, 0) + 1;
 
-  // Group comments by page
-  const commentsByPage: Map<number, CommentData[]> = new Map();
-  for (let i = 0; i < totalPages; i++) {
-    const pageComments = getCommentsForPage(i);
-    if (pageComments.length > 0) {
-      commentsByPage.set(i, pageComments);
-    }
-  }
-
-  const handleCommentClick = (comment: CommentData) => {
-    setActiveComment(comment.id);
-    // Scroll to the comment's page
+  const handleAnnotationClick = (entry: SidebarAnnotationEntry) => {
+    const annotation = entry.annotation.object as PdfAnnotationObject;
+    selectAnnotation(entry.page, annotation.id);
+    // Scroll to the annotation's page
     if (scroll?.provides) {
-      scroll.provides.scrollToPage({ pageNumber: comment.pageIndex + 1, behavior: 'smooth' });
+      scroll.provides.scrollToPage({ pageNumber: entry.page + 1, behavior: 'smooth' });
     }
   };
 
-  const handleReply = (commentId: string) => {
-    setReplyToCommentId(commentId);
-    setEditingCommentId(null);
+  const handleReply = (entry: SidebarAnnotationEntry) => {
+    setReplyToEntry(entry);
+    setEditingEntry(null);
+    setShowNewCommentForm(false);
   };
 
-  const handleEdit = (commentId: string) => {
-    setEditingCommentId(commentId);
-    setReplyToCommentId(null);
+  const handleEdit = (entry: SidebarAnnotationEntry) => {
+    setEditingEntry(entry);
+    setReplyToEntry(null);
+    setShowNewCommentForm(false);
   };
 
-  const handleDelete = (commentId: string) => {
-    deleteComment(commentId);
+  const handleDelete = (entry: SidebarAnnotationEntry) => {
+    const annotation = entry.annotation.object as PdfAnnotationObject;
+    deleteAnnotation(entry.page, annotation.id);
   };
 
   const handleAddReply = (content: string, author: string) => {
-    if (!replyToCommentId) return;
-
-    addReply(replyToCommentId, content, author || undefined);
-    setReplyToCommentId(null);
+    if (!replyToEntry) return;
+    const parentAnnotation = replyToEntry.annotation.object as PdfAnnotationObject;
+    addReply(parentAnnotation.id, replyToEntry.page, content, author || undefined);
+    setReplyToEntry(null);
   };
 
-  const handleEditSubmit = (content: string, author: string) => {
-    if (!editingCommentId) return;
-    updateComment(editingCommentId, { content, author: author || undefined });
-    setEditingCommentId(null);
+  const handleEditSubmit = (content: string, _author: string) => {
+    if (!editingEntry) return;
+    const annotation = editingEntry.annotation.object as PdfAnnotationObject;
+    updateAnnotationContents(editingEntry.page, annotation.id, content);
+    setEditingEntry(null);
   };
 
   const handleNewComment = (content: string, author: string) => {
-    // Calculate offset position so sidebar-added comments don't overlap
-    // Count existing comments on this page to offset the new one
-    const existingOnPage = getCommentsForPage(newCommentPageIndex);
-    const offset = existingOnPage.length * 30; // 30px offset per existing comment
+    // Position new comment at top-left with offset based on existing comments
+    const existingOnPage = annotationsByPage[newCommentPageIndex] || [];
+    const offset = existingOnPage.length * 30;
     const x = 20 + offset;
     const y = 20 + offset;
 
     addComment(newCommentPageIndex, { x, y }, content, author || undefined);
     setShowNewCommentForm(false);
-    setPendingAnnotationId(null);
   };
 
-  const editingComment = editingCommentId
-    ? comments.find((c) => c.id === editingCommentId)
-    : null;
+  const editingAnnotation = editingEntry?.annotation.object as PdfAnnotationObject | undefined;
 
   return (
     <div className="comments-sidebar">
@@ -247,6 +281,8 @@ export default function CommentsSidebar({ documentId }: CommentsSidebarProps) {
           className="add-comment-btn"
           onClick={() => {
             setShowNewCommentForm(true);
+            setReplyToEntry(null);
+            setEditingEntry(null);
             setNewCommentPageIndex(0);
           }}
         >
@@ -257,88 +293,82 @@ export default function CommentsSidebar({ documentId }: CommentsSidebarProps) {
       {showNewCommentForm && (
         <div className="comment-form-wrapper">
           <div className="comment-form-header">
-            {pendingAnnotationId ? (
-              <span>Comment on annotation</span>
-            ) : (
-              <label>
-                Page:{' '}
-                <select
-                  value={newCommentPageIndex}
-                  onChange={(e) => setNewCommentPageIndex(Number(e.target.value))}
-                >
-                  {Array.from({ length: totalPages }, (_, i) => (
-                    <option key={i} value={i}>
-                      {i + 1}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
+            <label>
+              Page:{' '}
+              <select
+                value={newCommentPageIndex}
+                onChange={(e) => setNewCommentPageIndex(Number(e.target.value))}
+              >
+                {Array.from({ length: totalPages || 1 }, (_, i) => (
+                  <option key={i} value={i}>
+                    {i + 1}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
           <CommentForm
             onSubmit={handleNewComment}
-            onCancel={() => {
-              setShowNewCommentForm(false);
-              setPendingAnnotationId(null);
-            }}
-            placeholder={
-              pendingAnnotationId
-                ? 'Add a comment to this annotation...'
-                : 'Write a comment...'
-            }
+            onCancel={() => setShowNewCommentForm(false)}
+            placeholder="Write a note..."
           />
         </div>
       )}
 
-      {replyToCommentId && (
+      {replyToEntry && (
         <div className="comment-form-wrapper">
-          <div className="comment-form-header">Reply to comment</div>
+          <div className="comment-form-header">Reply to {getAnnotationTypeLabel((replyToEntry.annotation.object as PdfAnnotationObject).type)}</div>
           <CommentForm
             onSubmit={handleAddReply}
-            onCancel={() => setReplyToCommentId(null)}
+            onCancel={() => setReplyToEntry(null)}
             placeholder="Write a reply..."
             submitLabel="Reply"
           />
         </div>
       )}
 
-      {editingComment && (
+      {editingEntry && editingAnnotation && (
         <div className="comment-form-wrapper">
-          <div className="comment-form-header">Edit comment</div>
+          <div className="comment-form-header">Edit {getAnnotationTypeLabel(editingAnnotation.type)}</div>
           <CommentForm
             onSubmit={handleEditSubmit}
-            onCancel={() => setEditingCommentId(null)}
-            initialContent={editingComment.content}
-            initialAuthor={editingComment.author || ''}
+            onCancel={() => setEditingEntry(null)}
+            initialContent={editingAnnotation.contents || ''}
             submitLabel="Save"
           />
         </div>
       )}
 
       <div className="comments-list">
-        {commentsByPage.size === 0 ? (
+        {pageIndices.length === 0 ? (
           <div className="comments-empty">
-            No comments yet. Click &quot;+ Add&quot; to create one.
+            No annotations yet. Use the annotation tools to add highlights, notes, or drawings.
           </div>
         ) : (
-          Array.from(commentsByPage.entries())
-            .sort(([a], [b]) => a - b)
-            .map(([pageIndex, pageComments]) => (
+          pageIndices.map((pageIndex) => {
+            const entries = annotationsByPage[pageIndex] || [];
+            if (entries.length === 0) return null;
+
+            return (
               <div key={pageIndex} className="comments-page-group">
                 <div className="comments-page-header">Page {pageIndex + 1}</div>
-                {pageComments.map((comment) => (
-                  <CommentCard
-                    key={comment.id}
-                    comment={comment}
-                    onReply={handleReply}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                    onClick={() => handleCommentClick(comment)}
-                    isActive={activeCommentId === comment.id}
-                  />
-                ))}
+                {entries.map((entry) => {
+                  const annotation = entry.annotation.object as PdfAnnotationObject;
+                  return (
+                    <AnnotationCard
+                      key={annotation.id}
+                      entry={entry}
+                      isSelected={selectedAnnotationId === annotation.id}
+                      onSelect={() => handleAnnotationClick(entry)}
+                      onReply={() => handleReply(entry)}
+                      onEdit={() => handleEdit(entry)}
+                      onDelete={() => handleDelete(entry)}
+                    />
+                  );
+                })}
               </div>
-            ))
+            );
+          })
         )}
       </div>
     </div>

@@ -108,6 +108,7 @@ export interface AnnotationProvides {
   getSelectedAnnotations?: () => TrackedAnnotation[];
   getSelectedAnnotation?: () => TrackedAnnotation | null;
   deleteAnnotation?: (pageIndex: number, annotationId: string) => void;
+  selectAnnotation?: (pageIndex: number, annotationId: string) => void;
   deselectAnnotation?: () => void;
 }
 

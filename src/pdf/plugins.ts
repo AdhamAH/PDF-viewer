@@ -16,35 +16,33 @@ import { ExportPluginPackage } from '@embedpdf/plugin-export/react';
 export const DEFAULT_DOCUMENT_URL = 'https://snippet.embedpdf.com/ebook.pdf';
 export const DEFAULT_DOCUMENT_ID = 'sample-doc';
 
-export function createViewerPlugins(initialUrl: string = DEFAULT_DOCUMENT_URL) {
-  return [
-    createPluginRegistration(DocumentManagerPluginPackage, {
-      initialDocuments: [
-        {
-          documentId: DEFAULT_DOCUMENT_ID,
-          name: 'Sample PDF',
-          url: initialUrl,
-        },
-      ],
-    }),
-    createPluginRegistration(ViewportPluginPackage),
-    createPluginRegistration(ScrollPluginPackage),
-    createPluginRegistration(RenderPluginPackage),
-
-    createPluginRegistration(InteractionManagerPluginPackage),
-    // Pan plugin controls click-drag behavior: 'never' means text selection is default
-    // Use 'mobile' to enable pan on touch devices, 'always' to always pan
-    createPluginRegistration(PanPluginPackage, {
-      defaultMode: 'never',
-    }),
-    createPluginRegistration(SelectionPluginPackage),
-    createPluginRegistration(HistoryPluginPackage),
-    createPluginRegistration(AnnotationPluginPackage),
-    createPluginRegistration(ZoomPluginPackage, {
-      defaultZoomLevel: ZoomMode.FitPage,
-    }),
-    createPluginRegistration(SearchPluginPackage),
-    createPluginRegistration(FullscreenPluginPackage),
-    createPluginRegistration(ExportPluginPackage),
-  ];
-}
+// Module-level constant to avoid recreating plugins on every render
+export const viewerPlugins = [
+  createPluginRegistration(DocumentManagerPluginPackage, {
+    initialDocuments: [
+      {
+        documentId: DEFAULT_DOCUMENT_ID,
+        name: 'Sample PDF',
+        url: DEFAULT_DOCUMENT_URL,
+      },
+    ],
+  }),
+  createPluginRegistration(ViewportPluginPackage),
+  createPluginRegistration(ScrollPluginPackage),
+  createPluginRegistration(RenderPluginPackage),
+  createPluginRegistration(InteractionManagerPluginPackage),
+  // Pan plugin controls click-drag behavior: 'never' means text selection is default
+  // Use 'mobile' to enable pan on touch devices, 'always' to always pan
+  createPluginRegistration(PanPluginPackage, {
+    defaultMode: 'never',
+  }),
+  createPluginRegistration(SelectionPluginPackage),
+  createPluginRegistration(HistoryPluginPackage),
+  createPluginRegistration(AnnotationPluginPackage),
+  createPluginRegistration(ZoomPluginPackage, {
+    defaultZoomLevel: ZoomMode.FitPage,
+  }),
+  createPluginRegistration(SearchPluginPackage),
+  createPluginRegistration(FullscreenPluginPackage),
+  createPluginRegistration(ExportPluginPackage),
+];

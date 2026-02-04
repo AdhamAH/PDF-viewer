@@ -12,22 +12,68 @@ import {
   GlobalPointerProvider,
   PagePointerProvider,
 } from '@embedpdf/plugin-interaction-manager/react';
-import { SelectionLayer } from '@embedpdf/plugin-selection/react';
-import { AnnotationLayer } from '@embedpdf/plugin-annotation/react';
+import { SelectionLayer, useSelectionCapability } from '@embedpdf/plugin-selection/react';
+import { AnnotationLayer, useAnnotation } from '@embedpdf/plugin-annotation/react';
 import { SearchLayer } from '@embedpdf/plugin-search/react';
-import { MarqueeZoom } from '@embedpdf/plugin-zoom/react';
+import { MarqueeZoom, ZoomGestureWrapper } from '@embedpdf/plugin-zoom/react';
+import type { PdfAnnotationObject } from '@embedpdf/models';
 
-import { createViewerPlugins, DEFAULT_DOCUMENT_URL } from './plugins';
+import { viewerPlugins, DEFAULT_DOCUMENT_URL } from './plugins';
 import Toolbar from './toolbar/Toolbar';
 import ThumbnailSidebar from './ThumbnailSidebar';
 import CommentsSidebar from './CommentsSidebar';
-import CommentLayer from './CommentLayer';
 import { CommentsProvider } from './CommentsContext';
 import type {
   DocumentManagerCapability,
   DocumentContentPayload,
 } from './types';
 import { isValidPdfUrl } from './types';
+
+// Selection menu component for text selection (copy action)
+function SelectionMenu({ documentId }: { documentId: string }) {
+  const selectionCapability = useSelectionCapability();
+
+  const handleCopy = () => {
+    const selection = selectionCapability?.provides?.forDocument?.(documentId);
+    selection?.copyToClipboard?.();
+  };
+
+  return (
+    <div className="selection-menu">
+      <button type="button" onClick={handleCopy}>
+        Copy
+      </button>
+    </div>
+  );
+}
+
+// Annotation selection menu component (delete action)
+function AnnotationSelectionMenu({
+  documentId,
+  annotation,
+  menuWrapperProps,
+}: {
+  documentId: string;
+  annotation: PdfAnnotationObject;
+  menuWrapperProps?: React.HTMLAttributes<HTMLDivElement>;
+}) {
+  const annotationHook = useAnnotation(documentId);
+
+  const handleDelete = () => {
+    annotationHook?.provides?.deleteAnnotation?.(annotation.pageIndex, annotation.id);
+  };
+
+  // menuWrapperProps contains positioning - spread it on the outer wrapper
+  return (
+    <div {...menuWrapperProps}>
+      <div className="annotation-menu">
+        <button type="button" onClick={handleDelete}>
+          Delete
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function DocumentViewport({
   documentId,
@@ -41,36 +87,47 @@ function DocumentViewport({
   return (
     <GlobalPointerProvider documentId={documentId}>
       <Viewport documentId={documentId}>
-        <Scroller
-          documentId={documentId}
-          renderPage={({ width, height, pageIndex }) => (
-            <div className="page" style={{ width, height }}>
-              <PagePointerProvider documentId={documentId} pageIndex={pageIndex}>
-                <RenderLayer documentId={documentId} pageIndex={pageIndex} />
-                <SelectionLayer documentId={documentId} pageIndex={pageIndex} />
-                <AnnotationLayer
-                  documentId={documentId}
-                  pageIndex={pageIndex}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                  }}
-                />
-                <CommentLayer
-                  documentId={documentId}
-                  pageIndex={pageIndex}
-                  pageWidth={width}
-                  pageHeight={height}
-                />
-                <MarqueeZoom documentId={documentId} pageIndex={pageIndex} />
-                <SearchLayer documentId={documentId} pageIndex={pageIndex} />
-              </PagePointerProvider>
-            </div>
-          )}
-        />
+        <ZoomGestureWrapper documentId={documentId} enablePinch={true} enableWheel={true}>
+          <Scroller
+            documentId={documentId}
+            renderPage={({ width, height, pageIndex }) => (
+              <div className="page" style={{ width, height }}>
+                <PagePointerProvider documentId={documentId} pageIndex={pageIndex}>
+                  <RenderLayer documentId={documentId} pageIndex={pageIndex} />
+                  <SearchLayer documentId={documentId} pageIndex={pageIndex} />
+                  <SelectionLayer
+                    documentId={documentId}
+                    pageIndex={pageIndex}
+                    selectionMenu={() => <SelectionMenu documentId={documentId} />}
+                  />
+                  <AnnotationLayer
+                    documentId={documentId}
+                    pageIndex={pageIndex}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                    }}
+                    selectionMenu={({ context, menuWrapperProps }) => {
+                      // context.annotation is TrackedAnnotation, we need the .object
+                      const annotation = (context.annotation as { object: PdfAnnotationObject }).object;
+                      return (
+                        <AnnotationSelectionMenu
+                          documentId={documentId}
+                          annotation={annotation}
+                          menuWrapperProps={menuWrapperProps}
+                        />
+                      );
+                    }}
+                  />
+                  <MarqueeZoom documentId={documentId} pageIndex={pageIndex} />
+                </PagePointerProvider>
+              </div>
+            )}
+          />
+        </ZoomGestureWrapper>
       </Viewport>
     </GlobalPointerProvider>
   );
@@ -203,8 +260,6 @@ function ViewerShell({ activeDocumentId }: { activeDocumentId: string | null }) 
 
 export default function PDFViewer() {
   const { engine, isLoading } = usePdfiumEngine();
-  // Plugin creation is intentionally not memoized - React 19 compiler handles this
-  const plugins = createViewerPlugins(DEFAULT_DOCUMENT_URL);
 
   if (isLoading) {
     return <div className="viewer-status">Loading PDF engine...</div>;
@@ -215,8 +270,14 @@ export default function PDFViewer() {
   }
 
   return (
-    <EmbedPDF engine={engine} plugins={plugins}>
-      {({ activeDocumentId }) => <ViewerShell activeDocumentId={activeDocumentId} />}
+    <EmbedPDF engine={engine} plugins={viewerPlugins}>
+      {({ activeDocumentId, pluginsReady }) =>
+        activeDocumentId && pluginsReady ? (
+          <ViewerShell activeDocumentId={activeDocumentId} />
+        ) : (
+          <div className="viewer-status">Initializing viewer...</div>
+        )
+      }
     </EmbedPDF>
   );
 }
