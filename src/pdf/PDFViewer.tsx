@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { EmbedPDF } from '@embedpdf/core/react';
 import { usePdfiumEngine } from '@embedpdf/engines/react';
 import {
@@ -58,9 +58,28 @@ function DocumentViewport({
 }: {
   documentId: string;
 }) {
-  // Annotations are persisted via autoCommit (default: true) in the annotation plugin.
-  // When user clicks "Save", ExportControls.saveAsCopy() exports PDF with annotations.
-  // No localStorage needed - annotations live in the PDF engine state during session.
+  const selectionCapability = useSelectionCapability();
+
+  // Handle Cmd+C / Ctrl+C keyboard shortcut for copying selected text
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check for Cmd+C (Mac) or Ctrl+C (Windows/Linux)
+      if ((e.metaKey || e.ctrlKey) && e.key === 'c') {
+        const selection = selectionCapability?.provides?.forDocument?.(documentId);
+        if (selection) {
+          // Check if there's an active selection by trying to get formatted selection
+          const formattedSelection = selection.getFormattedSelection?.();
+          if (formattedSelection && formattedSelection.length > 0) {
+            selection.copyToClipboard?.();
+            e.preventDefault();
+          }
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectionCapability, documentId]);
 
   return (
     <GlobalPointerProvider documentId={documentId}>
