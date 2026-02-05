@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useSearch } from '@embedpdf/plugin-search/react';
+import { useScroll } from '@embedpdf/plugin-scroll/react';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { SearchCapability, SearchState } from '../types';
 
@@ -40,10 +41,12 @@ function getActiveIndex(state: SearchState, totalMatches: number): number {
 export default function SearchBar({ documentId }: SearchBarProps) {
   // Type assertion through unknown to handle varying library API shapes
   const search = useSearch(documentId) as unknown as SearchCapability | undefined;
+  const scroll = useScroll(documentId);
   const state: SearchState = search?.state ?? {};
   const provides = search?.provides ?? {};
 
   const [query, setQuery] = useState(state.query ?? '');
+  const prevActiveIndexRef = useRef<number | null>(null);
 
   // Sync external state to local state - intentionally excludes `query` from deps
   // to prevent infinite loops when setQuery is called
@@ -54,6 +57,44 @@ export default function SearchBar({ documentId }: SearchBarProps) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.query, state.keyword]);
+
+  // Scroll to page when active search result changes
+  useEffect(() => {
+    const activeIndex = state.activeResultIndex ?? state.activeMatchIndex ?? state.activeMatch;
+    if (activeIndex === undefined || activeIndex === null) {
+      prevActiveIndexRef.current = null;
+      return;
+    }
+
+    // Only scroll when the index actually changes (not on initial mount with same value)
+    if (prevActiveIndexRef.current === activeIndex) {
+      return;
+    }
+    prevActiveIndexRef.current = activeIndex;
+
+    // Get the matches array
+    const matches = state.results ?? state.matches;
+    if (!Array.isArray(matches) || matches.length === 0) {
+      return;
+    }
+
+    // Get the current match
+    const currentMatch = matches[activeIndex] as { pageIndex?: number; page?: number } | undefined;
+    if (!currentMatch) {
+      return;
+    }
+
+    // Get page index from the match (could be pageIndex or page depending on API version)
+    const pageIndex = currentMatch.pageIndex ?? currentMatch.page;
+    if (pageIndex === undefined || pageIndex === null) {
+      return;
+    }
+
+    // Scroll to the page (scrollToPage uses 1-based page numbers)
+    if (scroll?.provides?.scrollToPage) {
+      scroll.provides.scrollToPage({ pageNumber: pageIndex + 1, behavior: 'smooth' });
+    }
+  }, [state.activeResultIndex, state.activeMatchIndex, state.activeMatch, state.results, state.matches, scroll?.provides]);
 
   // Compute derived values - React 19 compiler handles memoization
   const totalMatches = getTotalMatches(state);
