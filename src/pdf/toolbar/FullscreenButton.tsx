@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { useFullscreen } from '@embedpdf/plugin-fullscreen/react';
+import { Maximize, Minimize } from 'lucide-react';
 import type { FullscreenCapability } from '../types';
 
 type FullscreenButtonProps = {
@@ -51,8 +52,13 @@ export default function FullscreenButton({ documentId }: FullscreenButtonProps) 
   return (
     <>
       <div ref={fallbackTargetRef} style={{ display: 'none' }} />
-      <button type="button" onClick={toggleFullscreen}>
-        {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+      <button
+        type="button"
+        className="toolbar-btn"
+        onClick={toggleFullscreen}
+        data-tooltip={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+      >
+        {isFullscreen ? <Minimize size={18} /> : <Maximize size={18} />}
       </button>
     </>
   );

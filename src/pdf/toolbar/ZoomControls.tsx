@@ -1,4 +1,5 @@
 import { useZoom, ZoomMode } from '@embedpdf/plugin-zoom/react';
+import { Minus, Plus, Maximize2, ScanSearch } from 'lucide-react';
 import type { ZoomCapability } from '../types';
 
 type ZoomControlsProps = {
@@ -66,25 +67,26 @@ export default function ZoomControls({ documentId }: ZoomControlsProps) {
 
   return (
     <>
-      <button type="button" onClick={handleZoomOut}>
-        -
+      <button type="button" className="toolbar-btn" onClick={handleZoomOut} data-tooltip="Zoom Out">
+        <Minus size={18} />
       </button>
-      <button type="button" onClick={handleZoomIn}>
-        +
+      <button type="button" className="toolbar-btn" onClick={handleZoomIn} data-tooltip="Zoom In">
+        <Plus size={18} />
       </button>
-      <button type="button" onClick={handleReset}>
+      <button type="button" className="toolbar-btn toolbar-btn-text" onClick={handleReset} data-tooltip="Reset Zoom">
         {zoomLabel}
       </button>
-      <button type="button" onClick={handleFitPage}>
-        Fit Page
+      <button type="button" className="toolbar-btn" onClick={handleFitPage} data-tooltip="Fit Page">
+        <Maximize2 size={18} />
       </button>
       <button
         type="button"
-        className={isMarqueeZoomActive ? 'active' : ''}
+        className={`toolbar-btn ${isMarqueeZoomActive ? 'active' : ''}`}
         onClick={() => provides.toggleMarqueeZoom?.()}
         disabled={!provides.toggleMarqueeZoom}
+        data-tooltip="Area Zoom"
       >
-        Area Zoom
+        <ScanSearch size={18} />
       </button>
     </>
   );

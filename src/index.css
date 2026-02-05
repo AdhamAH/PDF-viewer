@@ -29,12 +29,13 @@ body {
   gap: 12px;
 }
 
+/* Toolbar */
 .toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px 12px;
+  gap: 6px;
   align-items: center;
-  padding: 10px 12px;
+  padding: 8px 12px;
   border: 1px solid #dedbd5;
   border-radius: 10px;
   background: #ffffff;
@@ -42,44 +43,164 @@ body {
 
 .toolbar-group {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   align-items: center;
 }
 
-.toolbar label {
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: #6a6359;
+.toolbar-divider {
+  width: 1px;
+  height: 24px;
+  background: #dedbd5;
+  margin: 0 4px;
 }
 
-.toolbar button {
-  border: 1px solid #cfc8bc;
-  background: #f4f1ea;
-  color: #2a2722;
-  padding: 6px 10px;
-  border-radius: 8px;
+/* Toolbar Icon Buttons */
+.toolbar-btn {
+  position: relative;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #4a4640;
+  padding: 6px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
-.toolbar button.active {
+.toolbar-btn:hover {
+  background: #f4f1ea;
+  border-color: #dedbd5;
+  color: #2a2722;
+}
+
+.toolbar-btn.active {
   background: #2a2722;
-  color: #f5f2ec;
+  color: #fff;
   border-color: #2a2722;
 }
 
-.toolbar button:disabled {
-  opacity: 0.5;
+.toolbar-btn:disabled {
+  opacity: 0.35;
   cursor: not-allowed;
 }
 
-.toolbar input[type="text"] {
-  border: 1px solid #cfc8bc;
+.toolbar-btn:disabled:hover {
+  background: transparent;
+  border-color: transparent;
+  color: #4a4640;
+}
+
+/* Text button variant (for zoom percentage) */
+.toolbar-btn-text {
   padding: 6px 10px;
-  border-radius: 8px;
-  font-size: 13px;
-  min-width: 200px;
+  font-size: 12px;
+  font-weight: 500;
+  min-width: 48px;
+}
+
+/* Toolbar Tooltips */
+.toolbar-btn[data-tooltip]:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 6px;
+  padding: 5px 8px;
+  background: #2a2722;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.toolbar-btn[data-tooltip]:hover::before {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-bottom-color: #2a2722;
+  pointer-events: none;
+  z-index: 100;
+}
+
+/* Search Input */
+.search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.search-input-wrapper input {
+  border: 1px solid #dedbd5;
+  padding: 6px 32px 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  width: 140px;
+  background: #fafaf9;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.search-input-wrapper input:focus {
+  outline: none;
+  border-color: #2a2722;
+  background: #fff;
+}
+
+.search-input-wrapper input::placeholder {
+  color: #9a958d;
+}
+
+.search-submit-btn {
+  position: absolute;
+  right: 2px;
+  border: none;
+  background: transparent;
+  color: #6a6359;
+  padding: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s;
+}
+
+.search-submit-btn:hover {
+  color: #2a2722;
+}
+
+.search-submit-btn[data-tooltip]:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 6px;
+  padding: 5px 8px;
+  background: #2a2722;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 500;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 100;
+}
+
+.search-count {
+  font-size: 11px;
+  color: #6a6359;
+  min-width: 32px;
+  text-align: center;
 }
 
 .viewer-wrapper {
@@ -507,53 +628,66 @@ body {
 /* Selection Menu (text selection popup) */
 .selection-menu {
   background: #2a2722;
-  color: #fff;
-  border-radius: 6px;
-  padding: 4px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-  display: flex;
-  gap: 2px;
-}
-
-.selection-menu button {
-  border: none;
-  background: transparent;
-  color: #fff;
-  padding: 6px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.selection-menu button:hover {
-  background: rgba(255, 255, 255, 0.15);
-}
-
-/* Annotation Selection Menu (annotation context menu) */
-/* Note: menuWrapperProps from AnnotationLayer handles positioning */
-.annotation-menu {
-  background: #2a2722;
-  color: #fff;
   border-radius: 6px;
   padding: 4px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
   display: inline-flex;
   gap: 2px;
-  white-space: nowrap;
 }
 
-.annotation-menu button {
+.selection-menu-btn {
+  position: relative;
   border: none;
   background: transparent;
   color: #fff;
-  padding: 6px 12px;
+  padding: 6px;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 12px;
-  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.annotation-menu button:hover {
+.selection-menu-btn:hover {
   background: rgba(255, 255, 255, 0.15);
+}
+
+/* Tooltip on hover */
+.selection-menu-btn[data-tooltip]:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 6px;
+  padding: 4px 8px;
+  background: #1a1a1a;
+  color: #fff;
+  font-size: 11px;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 10;
+}
+
+
+/* ========================================
+   Annotation Selection Styling
+   Make selected annotations more visible
+   ======================================== */
+
+/* Target highlight annotation elements with selection outline */
+/* These have mix-blend-mode: multiply and an outline set by the library */
+.page div[style*="mix-blend-mode"][style*="outline"] {
+  outline-width: 3px !important;
+}
+
+/* More specific: target elements with the multiply blend mode (highlights) */
+.page div[style*="multiply"] {
+  outline-width: 3px !important;
+}
+
+/* Target any element in the page with an outline */
+.page div[style*="outline: rgb"] {
+  outline-width: 3px !important;
 }

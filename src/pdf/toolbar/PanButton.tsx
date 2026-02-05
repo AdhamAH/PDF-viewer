@@ -1,4 +1,5 @@
 import { usePan } from '@embedpdf/plugin-pan/react';
+import { Hand } from 'lucide-react';
 import type { PanCapability } from '../types';
 
 type PanButtonProps = {
@@ -19,11 +20,12 @@ export default function PanButton({ documentId }: PanButtonProps) {
   return (
     <button
       type="button"
-      className={isPanning ? 'active' : ''}
+      className={`toolbar-btn ${isPanning ? 'active' : ''}`}
       onClick={handleToggle}
       disabled={!provides.togglePan}
+      data-tooltip={isPanning ? 'Pan Mode (On)' : 'Pan Mode'}
     >
-      {isPanning ? 'Hand (ON)' : 'Hand (OFF)'}
+      <Hand size={18} />
     </button>
   );
 }

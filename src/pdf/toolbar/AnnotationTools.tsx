@@ -1,5 +1,6 @@
 import { useAnnotation } from '@embedpdf/plugin-annotation/react';
 import { useEffect, useCallback } from 'react';
+import { Highlighter, Underline, X, Trash2 } from 'lucide-react';
 import type { AnnotationCapability, AnnotationState } from '../types';
 
 type AnnotationToolsProps = {
@@ -115,28 +116,31 @@ export default function AnnotationTools({ documentId }: AnnotationToolsProps) {
     <>
       <button
         type="button"
-        className={activeTool === HIGHLIGHT_TOOL ? 'active' : ''}
+        className={`toolbar-btn ${activeTool === HIGHLIGHT_TOOL ? 'active' : ''}`}
         onClick={() => setTool(HIGHLIGHT_TOOL)}
+        data-tooltip="Highlight"
       >
-        Highlight
+        <Highlighter size={18} />
       </button>
       <button
         type="button"
-        className={activeTool === UNDERLINE_TOOL ? 'active' : ''}
+        className={`toolbar-btn ${activeTool === UNDERLINE_TOOL ? 'active' : ''}`}
         onClick={() => setTool(UNDERLINE_TOOL)}
+        data-tooltip="Underline"
       >
-        Underline
+        <Underline size={18} />
       </button>
-      <button type="button" onClick={clearTool}>
-        Cancel
+      <button type="button" className="toolbar-btn" onClick={clearTool} data-tooltip="Cancel">
+        <X size={18} />
       </button>
       <button
         type="button"
+        className="toolbar-btn"
         onClick={deleteSelected}
         disabled={!hasSelection}
-        title="Delete selected annotation"
+        data-tooltip="Delete Selection"
       >
-        Delete
+        <Trash2 size={18} />
       </button>
     </>
   );

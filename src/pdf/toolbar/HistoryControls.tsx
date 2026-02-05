@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useHistoryCapability } from '@embedpdf/plugin-history/react';
+import { Undo2, Redo2 } from 'lucide-react';
 import type { HistoryCapability, HistoryProvides, HistoryScope } from '../types';
 
 type HistoryControlsProps = {
@@ -73,11 +74,11 @@ export default function HistoryControls({ documentId }: HistoryControlsProps) {
 
   return (
     <>
-      <button type="button" onClick={handleUndo} disabled={!canUndo}>
-        Undo
+      <button type="button" className="toolbar-btn" onClick={handleUndo} disabled={!canUndo} data-tooltip="Undo">
+        <Undo2 size={18} />
       </button>
-      <button type="button" onClick={handleRedo} disabled={!canRedo}>
-        Redo
+      <button type="button" className="toolbar-btn" onClick={handleRedo} disabled={!canRedo} data-tooltip="Redo">
+        <Redo2 size={18} />
       </button>
     </>
   );

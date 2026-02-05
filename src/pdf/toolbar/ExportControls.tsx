@@ -1,6 +1,7 @@
 import { useExport } from '@embedpdf/plugin-export/react';
 import { useAnnotation } from '@embedpdf/plugin-annotation/react';
 import { useState } from 'react';
+import { Download, Save } from 'lucide-react';
 import type { ExportCapability } from '../types';
 import type { AnnotationScope, AnnotationDocumentState } from '@embedpdf/plugin-annotation';
 
@@ -114,19 +115,21 @@ export default function ExportControls({ documentId }: ExportControlsProps) {
     <>
       <button
         type="button"
+        className="toolbar-btn"
         onClick={handleDownload}
         disabled={!provides.saveAsCopy || isSaving}
-        title="Download original PDF"
+        data-tooltip="Download"
       >
-        Download
+        <Download size={18} />
       </button>
       <button
         type="button"
+        className="toolbar-btn"
         onClick={handleSaveCopy}
         disabled={!provides.saveAsCopy || isSaving}
-        title="Save PDF with annotations"
+        data-tooltip={isSaving ? 'Saving...' : 'Save with Annotations'}
       >
-        {isSaving ? 'Saving...' : 'Save Copy'}
+        <Save size={18} />
       </button>
     </>
   );

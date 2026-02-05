@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useSearch } from '@embedpdf/plugin-search/react';
+import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { SearchCapability, SearchState } from '../types';
 
 type SearchBarProps = {
@@ -126,27 +127,29 @@ export default function SearchBar({ documentId }: SearchBarProps) {
 
   return (
     <>
-      <input
-        type="text"
-        value={query}
-        placeholder="Find text"
-        onChange={(event) => setQuery(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter') {
-            runSearch();
-          }
-        }}
-      />
-      <button type="button" onClick={runSearch}>
-        Search
+      <div className="search-input-wrapper">
+        <input
+          type="text"
+          value={query}
+          placeholder="Find text"
+          onChange={(event) => setQuery(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              runSearch();
+            }
+          }}
+        />
+        <button type="button" className="search-submit-btn" onClick={runSearch} data-tooltip="Search">
+          <Search size={16} />
+        </button>
+      </div>
+      <button type="button" className="toolbar-btn" onClick={goPrev} disabled={!totalMatches} data-tooltip="Previous">
+        <ChevronLeft size={18} />
       </button>
-      <button type="button" onClick={goPrev} disabled={!totalMatches}>
-        Prev
+      <button type="button" className="toolbar-btn" onClick={goNext} disabled={!totalMatches} data-tooltip="Next">
+        <ChevronRight size={18} />
       </button>
-      <button type="button" onClick={goNext} disabled={!totalMatches}>
-        Next
-      </button>
-      <span>
+      <span className="search-count">
         {totalMatches ? `${activeIndex}/${totalMatches}` : '0/0'}
       </span>
     </>

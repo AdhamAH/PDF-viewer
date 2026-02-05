@@ -16,7 +16,7 @@ import { SelectionLayer, useSelectionCapability } from '@embedpdf/plugin-selecti
 import { AnnotationLayer, useAnnotation } from '@embedpdf/plugin-annotation/react';
 import { SearchLayer } from '@embedpdf/plugin-search/react';
 import { MarqueeZoom, ZoomGestureWrapper } from '@embedpdf/plugin-zoom/react';
-import type { PdfAnnotationObject } from '@embedpdf/models';
+import { Copy } from 'lucide-react';
 
 import { viewerPlugins, DEFAULT_DOCUMENT_URL } from './plugins';
 import Toolbar from './toolbar/Toolbar';
@@ -40,40 +40,18 @@ function SelectionMenu({ documentId }: { documentId: string }) {
 
   return (
     <div className="selection-menu">
-      <button type="button" onClick={handleCopy}>
-        Copy
+      <button
+        type="button"
+        onClick={handleCopy}
+        className="selection-menu-btn"
+        data-tooltip="Copy"
+      >
+        <Copy size={16} />
       </button>
     </div>
   );
 }
 
-// Annotation selection menu component (delete action)
-function AnnotationSelectionMenu({
-  documentId,
-  annotation,
-  menuWrapperProps,
-}: {
-  documentId: string;
-  annotation: PdfAnnotationObject;
-  menuWrapperProps?: React.HTMLAttributes<HTMLDivElement>;
-}) {
-  const annotationHook = useAnnotation(documentId);
-
-  const handleDelete = () => {
-    annotationHook?.provides?.deleteAnnotation?.(annotation.pageIndex, annotation.id);
-  };
-
-  // menuWrapperProps contains positioning - spread it on the outer wrapper
-  return (
-    <div {...menuWrapperProps}>
-      <div className="annotation-menu">
-        <button type="button" onClick={handleDelete}>
-          Delete
-        </button>
-      </div>
-    </div>
-  );
-}
 
 function DocumentViewport({
   documentId,
@@ -103,23 +81,13 @@ function DocumentViewport({
                   <AnnotationLayer
                     documentId={documentId}
                     pageIndex={pageIndex}
+                    selectionOutlineColor="#2563eb"
                     style={{
                       position: 'absolute',
                       top: 0,
                       left: 0,
                       width: '100%',
                       height: '100%',
-                    }}
-                    selectionMenu={({ context, menuWrapperProps }) => {
-                      // context.annotation is TrackedAnnotation, we need the .object
-                      const annotation = (context.annotation as { object: PdfAnnotationObject }).object;
-                      return (
-                        <AnnotationSelectionMenu
-                          documentId={documentId}
-                          annotation={annotation}
-                          menuWrapperProps={menuWrapperProps}
-                        />
-                      );
                     }}
                   />
                   <MarqueeZoom documentId={documentId} pageIndex={pageIndex} />

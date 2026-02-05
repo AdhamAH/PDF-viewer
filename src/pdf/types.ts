@@ -86,7 +86,7 @@ export interface ZoomCapability {
 export type AnyAnnotation = Record<string, unknown>;
 
 export interface TrackedAnnotation {
-  object: AnyAnnotation & { pageIndex?: number };
+  object: AnyAnnotation & { pageIndex?: number; id?: string };
   commitState?: string;
 }
 
